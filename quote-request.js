@@ -594,7 +594,9 @@ window.Wized.push(async (Wized) => {
         if (cabinData) {
           // Set initial class based on availability
           const statusClass =
-            cabinData.item_status === 0 ? "available" : "reserved";
+            cabinData.item_status === 0 && cabinData.product_category_enabled
+              ? "available"
+              : "reserved";
           cabinElement.classList.add("cabin", statusClass);
         }
       });
