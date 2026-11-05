@@ -1,0 +1,223 @@
+<!doctype html>
+<!--
+  Local harness for deck-plan.js + quote-request.js.
+
+  Serve the repo root over HTTP (fixtures are fetched, so file:// will not work):
+    python3 -m http.server 8421
+  then open http://localhost:8421/test/deck-plan.html?product_id=24444
+
+  Query parameters
+    product_id=…   product to load (cabins always come from the LIVE cabin API)
+    mock=…         where the deck plan comes from:
+                     (absent)      live  api:XeSy1hTp/deck_plan/{product_id}
+                     fixture       test/fixtures/deck_plan_{product_id}.json
+                     no_plan       fixture with image_url = null
+                     broken_image  fixture whose image 404s
+                     fetch_error   endpoint on an unreachable host
+
+  Scenarios checked (see README "Deck plan" for results)
+    ?product_id=24444&mock=fixture      shapes over cabins, available/reserved colours,
+                                        click-to-select, resize, poly + rect parsing,
+                                        circle/default areas ignored
+    ?product_id=24444                   same against the live deck_plan endpoint
+    ?product_id=23452                   live; JPEG-origin image, rect + poly areas
+    ?product_id=23452&mock=no_plan      "deck plan not available" message
+    ?product_id=24444&mock=broken_image image load failure message
+    ?product_id=24444&mock=fetch_error  fetch failure message
+
+  The "Seed basket" button puts cabin 511 in the basket (localStorage) and reloads,
+  to check the .in-basket style. "Clear basket" removes it.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deck plan harness</title>
+    <style>
+      body {
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        margin: 0;
+        padding: 16px;
+        background: #f4f6f8;
+        color: #1b2733;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 16px;
+        align-items: start;
+      }
+      @media (max-width: 800px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+      #deckSchematic,
+      .panel {
+        background: #fff;
+        border: 1px solid #d5dce3;
+        border-radius: 8px;
+        padding: 12px;
+      }
+      #deckSchematic {
+        resize: horizontal;
+        overflow: auto;
+        min-width: 240px;
+      }
+      .panel label {
+        display: block;
+        margin-top: 8px;
+      }
+      .panel select,
+      .panel button {
+        width: 100%;
+        margin-top: 4px;
+      }
+      nav a {
+        margin-right: 10px;
+      }
+      #harness-log {
+        font:
+          12px ui-monospace,
+          monospace;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <strong>Scenarios:</strong>
+      <a href="?product_id=24444&mock=fixture">24444 fixture</a>
+      <a href="?product_id=24444">24444 live</a>
+      <a href="?product_id=23452">23452 live</a>
+      <a href="?product_id=23452&mock=no_plan">no plan</a>
+      <a href="?product_id=24444&mock=broken_image">broken image</a>
+      <a href="?product_id=24444&mock=fetch_error">fetch error</a>
+      <button id="seed-basket" type="button">Seed basket (511)</button>
+      <button id="clear-basket" type="button">Clear basket</button>
+    </nav>
+
+    <div class="layout">
+      <div id="deckSchematic"></div>
+
+      <div class="panel">
+        <div>Category: <strong class="cabin-category">-</strong></div>
+        <div>Max occupancy: <span class="cabin-size">-</span></div>
+        <label
+          >Occupancy
+          <select id="occupancyType"></select
+        ></label>
+        <label
+          >Adults
+          <select id="adults"></select
+        ></label>
+        <label
+          >Children
+          <select id="children"></select
+        ></label>
+        <div id="childrenDOBContainer"></div>
+        <div class="price-display"></div>
+        <div class="warning-message"></div>
+        <button class="add-button" type="button" disabled>
+          Add to booking
+        </button>
+        <h4>Basket</h4>
+        <div class="mini-basket-items"></div>
+        <div>
+          Adults <span class="total-adults">0</span>, children
+          <span class="total-children">0</span>, discounts
+          <span class="total-discounts">-</span>, total
+          <span class="basket-total-price">-</span>
+        </div>
+        <h4>Harness log</h4>
+        <div id="harness-log"></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const params = new URLSearchParams(location.search);
+        const productId = params.get("product_id") || "24444";
+        const mock = params.get("mock");
+        const fixtures = new URL("fixtures/", location.href).href;
+        const endpoints = {
+          fixture: fixtures + "deck_plan_{product_id}.json",
+          no_plan: fixtures + "deck_plan_no_plan.json",
+          broken_image: fixtures + "deck_plan_broken_image.json",
+          fetch_error: "http://127.0.0.1:9/deck_plan/{product_id}",
+        };
+        if (mock && endpoints[mock])
+          window.A21_DECK_PLAN_ENDPOINT = endpoints[mock];
+
+        const log = (msg) => {
+          const el = document.getElementById("harness-log");
+          if (el) el.textContent += msg + "\n";
+          console.log("[harness]", msg);
+        };
+        log(`product_id=${productId} mock=${mock || "live"}`);
+
+        // Minimal Wized stub: quote-request.js pushes a callback, awaits
+        // Wized.requests.waitFor("get_product") and reads
+        // Wized.data.n.parameter.product_id.
+        const fakeWized = {
+          requests: { waitFor: async () => ({ ok: true }) },
+          data: { n: { parameter: { product_id: productId } }, v: {} },
+        };
+        window.Wized = { push: (fn) => fn(fakeWized) };
+
+        document.getElementById("seed-basket").onclick = () => {
+          localStorage.setItem(
+            "bookingBasket",
+            JSON.stringify([
+              {
+                product_id: productId,
+                cabinCode: "511",
+                adults: 2,
+                children: 0,
+                price: 0,
+              },
+            ]),
+          );
+          location.reload();
+        };
+        document.getElementById("clear-basket").onclick = () => {
+          localStorage.removeItem("bookingBasket");
+          location.reload();
+        };
+
+        window.addEventListener("load", async () => {
+          const result = await (window.A21DeckPlan && window.A21DeckPlan.ready);
+          if (!result) return log("deck plan: render() was not called");
+          log(`deck plan: ${result.status}, ${result.shapes} shapes`);
+          // quote-request.js applies cabin classes after the cabin fetch; wait for it.
+          const started = Date.now();
+          const report = () => {
+            if (
+              !document.querySelector(".deck-plan__shape.cabin") &&
+              Date.now() - started < 8000
+            ) {
+              return setTimeout(report, 200);
+            }
+            const shapes = document.querySelectorAll(".deck-plan__shape");
+            const count = (sel) => document.querySelectorAll(sel).length;
+            log(
+              `classes: available=${count(".deck-plan__shape.available")} ` +
+                `reserved=${count(".deck-plan__shape.reserved")} ` +
+                `unmatched=${
+                  [...shapes]
+                    .filter((s) => !s.classList.contains("cabin"))
+                    .map((s) => s.dataset.cabinCode)
+                    .join(",") || "none"
+                }`,
+            );
+          };
+          report();
+        });
+      })();
+    </script>
+    <script src="../deck-plan.js"></script>
+    <script src="../quote-request.js"></script>
+  </body>
+</html>
