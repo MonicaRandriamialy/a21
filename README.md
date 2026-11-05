@@ -19,7 +19,9 @@ replacing the hand-made per-season SVG embeds.
   `.cabin.available/.reserved/.selected/.in-basket` classes.
 - No deck plan (`image_url` null, which the endpoint returns for unknown products too; a 404 is treated the same), fetch failure and image load failure
   each show a message in `#deckSchematic`; `render()` never rejects.
-- Default styles are injected once (`#a21-deck-plan-styles`). Colours are CSS
+- Default styles match the old SVGs: available cabins keep the image's category
+  colour (outline on hover), reserved cabins are greyed out, selected / in-basket
+  cabins get a solid / dashed dark outline. They are injected once (`#a21-deck-plan-styles`). Colours are CSS
   custom properties (`--deck-plan-available-fill`, `--deck-plan-reserved-fill`,
   `--deck-plan-selected-fill`, `--deck-plan-basket-fill`, `--deck-plan-hover-fill`
   and matching `-stroke`), so Webflow can theme them on `#deckSchematic`.
@@ -45,8 +47,8 @@ Results (2026-11-05):
 | --- | --- |
 | 24444 real map | 42 rect shapes on top of the cabins, 0 unmatched |
 | available/reserved | 28 available / 14 reserved, matching `cabin/24444` exactly |
-| click | clicking 507 / 423 selects it (blue) and fills category + price ($29,795 pp) |
-| in-basket | seeded 511 shows `.in-basket` (amber) |
+| click | clicking 507 / 423 selects it (dark outline) and fills category + price ($29,795 pp) |
+| in-basket | seeded 511 shows `.in-basket` (dashed dark outline) |
 | resize | overlay tracks the image at desktop and 375px mobile width |
 | 23452 real map | 798x1380 JPEG, 38 rect + 3 L-shaped poly (409, 411, 414), all aligned; every cabin is reserved in `cabin/23452`, so selection can't be exercised there |
 | 23452 data mismatch | map areas `407` and `512` have no cabin in `cabin/23452`, and cabin `502` has no area, so those stay unstyled/unclickable (RezMagic data, not this script) |

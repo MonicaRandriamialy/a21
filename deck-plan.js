@@ -33,9 +33,11 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
   const STYLE_ID = "a21-deck-plan-styles";
 
-  // Default look. Every colour is a custom property so Webflow can theme it
-  // (e.g. set --deck-plan-available-fill on #deckSchematic) without fighting
-  // specificity.
+  // Default look, matching the old SVG deck plans: available cabins keep the
+  // image's own category colour (outline on hover), reserved cabins are greyed
+  // out, the selected / in-basket cabin gets a dark outline. Every colour is a
+  // custom property so Webflow can theme it (e.g. set --deck-plan-reserved-fill
+  // on #deckSchematic) without fighting specificity.
   const DEFAULT_CSS = `
 #deckSchematic .deck-plan {
   position: relative;
@@ -67,26 +69,29 @@
   transition: fill 0.12s ease, stroke 0.12s ease;
 }
 #deckSchematic .deck-plan__shape.cabin.available {
-  fill: var(--deck-plan-available-fill, rgba(34, 160, 90, 0.22));
-  stroke: var(--deck-plan-available-stroke, #1f9d55);
+  fill: var(--deck-plan-available-fill, transparent);
+  stroke: var(--deck-plan-available-stroke, transparent);
   cursor: pointer;
 }
 #deckSchematic .deck-plan__shape.cabin.available:hover {
-  fill: var(--deck-plan-hover-fill, rgba(34, 160, 90, 0.45));
+  fill: var(--deck-plan-hover-fill, rgba(255, 255, 255, 0.25));
+  stroke: var(--deck-plan-hover-stroke, #292634);
 }
 #deckSchematic .deck-plan__shape.cabin.reserved {
-  fill: var(--deck-plan-reserved-fill, rgba(90, 90, 90, 0.5));
-  stroke: var(--deck-plan-reserved-stroke, rgba(60, 60, 60, 0.8));
+  fill: var(--deck-plan-reserved-fill, rgba(104, 111, 130, 0.8));
+  stroke: var(--deck-plan-reserved-stroke, transparent);
   cursor: not-allowed;
 }
 #deckSchematic .deck-plan__shape.cabin.in-basket {
-  fill: var(--deck-plan-basket-fill, rgba(230, 150, 20, 0.45));
-  stroke: var(--deck-plan-basket-stroke, #d98a00);
+  fill: var(--deck-plan-basket-fill, rgba(41, 38, 52, 0.15));
+  stroke: var(--deck-plan-basket-stroke, #292634);
+  stroke-dasharray: 4 3;
 }
 #deckSchematic .deck-plan__shape.cabin.selected {
-  fill: var(--deck-plan-selected-fill, rgba(0, 92, 200, 0.45));
-  stroke: var(--deck-plan-selected-stroke, #005cc8);
+  fill: var(--deck-plan-selected-fill, rgba(41, 38, 52, 0.25));
+  stroke: var(--deck-plan-selected-stroke, #292634);
   stroke-width: 3px;
+  stroke-dasharray: none;
 }
 #deckSchematic .deck-plan-message {
   line-height: 1.4;
