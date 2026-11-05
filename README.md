@@ -68,8 +68,8 @@ Checked against the live page `/booking/quote-request` on 2026-11-05.
    must show (legend, heading) goes outside it, because its contents get replaced.
 2. **Scripts.** Add `deck-plan.js` before `quote-request.js` in the page's custom
    code. For testing, point both at the `deck-plan` branch commit:
-   `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@b545a13/deck-plan.js`
-   `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@b545a13/quote-request.js`
+   `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@76736db/deck-plan.js`
+   `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@76736db/quote-request.js`
    After merging, switch both to `@main` (and purge the jsDelivr cache).
    Without `deck-plan.js`, `quote-request.js` skips rendering as before.
 3. **CSS.** These existing rules apply to the new shapes too:
