@@ -33,22 +33,26 @@ open http://localhost:8421/test/deck-plan.html?product_id=24444&mock=fixture
 
 `test/deck-plan.html` stubs `window.Wized` and loads both scripts against the
 **live** cabin API. Its header comment lists the scenarios.
-`test/fixtures/deck_plan_24444.json` uses the real RezMagic image for 24444 with
-an image map generated from the cabin cells in that image. It deliberately mixes
-attribute order, whitespace and case, three `poly` areas, and a `circle` and a
-`default` area that must be skipped.
+`test/fixtures/deck_plan_24444.json` and `deck_plan_23452.json` are the real
+RezMagic responses (same shape as the endpoint, live Xano image URLs).
+`deck_plan_parser_edge_cases.json` (`mock=edge_cases`) reuses the 24444 image with
+a generated map that mixes attribute order, whitespace and case, has three `poly`
+areas, and a `circle` and a `default` area that must be skipped.
 
 Results (2026-11-05):
 
 | Scenario | Result |
 | --- | --- |
-| 24444 fixture | 42 shapes (39 rect, 3 poly) on top of the cabins; circle/default skipped |
-| available/reserved | 28 available / 14 reserved, matching `cabin/24444` exactly; 0 unmatched shapes |
-| click | clicking 507 selects it (blue) and fills category + price ($29,795 pp) |
+| 24444 real map | 42 rect shapes on top of the cabins, 0 unmatched |
+| available/reserved | 28 available / 14 reserved, matching `cabin/24444` exactly |
+| click | clicking 507 / 423 selects it (blue) and fills category + price ($29,795 pp) |
 | in-basket | seeded 511 shows `.in-basket` (amber) |
 | resize | overlay tracks the image at desktop and 375px mobile width |
+| 23452 real map | 798x1380 JPEG, 38 rect + 3 L-shaped poly (409, 411, 414), all aligned; every cabin is reserved in `cabin/23452`, so selection can't be exercised there |
+| 23452 data mismatch | map areas `407` and `512` have no cabin in `cabin/23452`, and cabin `502` has no area, so those stay unstyled/unclickable (RezMagic data, not this script) |
+| parser edge cases | 42 shapes (39 rect, 3 poly); circle/default skipped |
 | no plan / broken image / fetch error | each shows a message in `#deckSchematic` |
-| 24444 / 23452 live | **not verified**: `deck_plan/{id}` still returned 404 |
+| live endpoint | **not verified**: `deck_plan/{id}` is not deployed yet |
 
 ## Webflow changes needed
 

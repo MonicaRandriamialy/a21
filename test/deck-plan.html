@@ -11,16 +11,20 @@
     mock=…         where the deck plan comes from:
                      (absent)      live  api:XeSy1hTp/deck_plan/{product_id}
                      fixture       test/fixtures/deck_plan_{product_id}.json
+                                   (real RezMagic responses for 24444 and 23452)
+                     edge_cases    generated map over the 24444 image: mixed attribute
+                                   order/case/whitespace, poly areas, circle + default
+                                   areas that must be skipped
                      no_plan       fixture with image_url = null
                      broken_image  fixture whose image 404s
                      fetch_error   endpoint on an unreachable host
 
   Scenarios checked (see README "Deck plan" for results)
     ?product_id=24444&mock=fixture      shapes over cabins, available/reserved colours,
-                                        click-to-select, resize, poly + rect parsing,
-                                        circle/default areas ignored
-    ?product_id=24444                   same against the live deck_plan endpoint
-    ?product_id=23452                   live; JPEG-origin image, rect + poly areas
+                                        click-to-select, resize
+    ?product_id=23452&mock=fixture      JPEG-origin image, rect + poly areas
+    ?product_id=24444&mock=edge_cases   parser robustness
+    ?product_id=24444                   live deck_plan endpoint (once deployed)
     ?product_id=23452&mock=no_plan      "deck plan not available" message
     ?product_id=24444&mock=broken_image image load failure message
     ?product_id=24444&mock=fetch_error  fetch failure message
@@ -90,8 +94,9 @@
     <nav>
       <strong>Scenarios:</strong>
       <a href="?product_id=24444&mock=fixture">24444 fixture</a>
+      <a href="?product_id=23452&mock=fixture">23452 fixture</a>
+      <a href="?product_id=24444&mock=edge_cases">parser edge cases</a>
       <a href="?product_id=24444">24444 live</a>
-      <a href="?product_id=23452">23452 live</a>
       <a href="?product_id=23452&mock=no_plan">no plan</a>
       <a href="?product_id=24444&mock=broken_image">broken image</a>
       <a href="?product_id=24444&mock=fetch_error">fetch error</a>
@@ -144,6 +149,7 @@
         const fixtures = new URL("fixtures/", location.href).href;
         const endpoints = {
           fixture: fixtures + "deck_plan_{product_id}.json",
+          edge_cases: fixtures + "deck_plan_parser_edge_cases.json",
           no_plan: fixtures + "deck_plan_no_plan.json",
           broken_image: fixtures + "deck_plan_broken_image.json",
           fetch_error: "http://127.0.0.1:9/deck_plan/{product_id}",
