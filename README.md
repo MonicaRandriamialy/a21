@@ -17,7 +17,7 @@ replacing the hand-made per-season SVG embeds.
   the cabin fetch and waits for it before `initializeCabinStates()`. Selection,
   basket and click delegation are unchanged: the shapes get the same
   `.cabin.available/.reserved/.selected/.in-basket` classes.
-- No deck plan (`image_url` null or 404), fetch failure and image load failure
+- No deck plan (`image_url` null, which the endpoint returns for unknown products too; a 404 is treated the same), fetch failure and image load failure
   each show a message in `#deckSchematic`; `render()` never rejects.
 - Default styles are injected once (`#a21-deck-plan-styles`). Colours are CSS
   custom properties (`--deck-plan-available-fill`, `--deck-plan-reserved-fill`,
@@ -52,7 +52,7 @@ Results (2026-11-05):
 | 23452 data mismatch | map areas `407` and `512` have no cabin in `cabin/23452`, and cabin `502` has no area, so those stay unstyled/unclickable (RezMagic data, not this script) |
 | parser edge cases | 42 shapes (39 rect, 3 poly); circle/default skipped |
 | no plan / broken image / fetch error | each shows a message in `#deckSchematic` |
-| live endpoint | **not verified**: `deck_plan/{id}` is not deployed yet |
+| live endpoint | `deck_plan/24444` and `/23452` byte-identical to the fixtures; harness without `mock` gives the same results (24444: 42 shapes, 28/14, 417 selectable; 23452: 41 shapes, 3 poly); unknown product 999999 (200 with nulls) shows the no-plan message |
 
 ## Webflow changes needed
 
