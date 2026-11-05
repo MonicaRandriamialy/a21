@@ -56,19 +56,30 @@ Results (2026-11-05):
 
 ## Webflow changes needed
 
-1. Quote request page: delete every per-season deck plan SVG embed inside
-   `#deckSchematic` and the Wized visibility conditions that pick one by
-   ship/season. Keep the empty `#deckSchematic` element (any wrapper, legend or
-   heading must sit **outside** it, since the script replaces its contents).
-2. Add the script **before** `quote-request.js`, in the page's custom code:
-   `<script src="https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@main/deck-plan.js"></script>`
-   (pin a tag or commit instead of `@main` if the site pins `quote-request.js`).
-   If it is missing, `quote-request.js` skips rendering, as it did before.
-3. CSS: rules aimed at the old SVGs (e.g. `#deckSchematic path`, `.cabin path`,
-   `.cabin.available path`) no longer match. Cabin shapes are now
-   `rect.deck-plan__shape` / `polygon.deck-plan__shape` with the same state
-   classes. Either delete those rules and use the defaults, or retarget them to
-   `.deck-plan__shape.cabin.available` etc., or set the `--deck-plan-*` custom
-   properties on `#deckSchematic`. Make sure `#deckSchematic` has no fixed height
-   or `overflow: hidden` that would crop the taller images.
-4. Purge the jsDelivr cache for both files after merging.
+Checked against the live page `/booking/quote-request` on 2026-11-05.
+
+1. **Deck plan embeds.** The page has **six** elements with `id="deckSchematic"`
+   (one per ship/season SVG, switched by Wized visibility). The script uses
+   `getElementById`, so it only uses the first one. Delete the per-season embeds
+   and their Wized visibility conditions so exactly one `#deckSchematic`
+   (class `deck-schematic`) remains, always visible and empty. Anything else that
+   must show (legend, heading) goes outside it, because its contents get replaced.
+2. **Scripts.** Add `deck-plan.js` before `quote-request.js` in the page's custom
+   code. For testing, point both at the `deck-plan` branch commit:
+   `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@b545a13/deck-plan.js`
+   `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@b545a13/quote-request.js`
+   After merging, switch both to `@main` (and purge the jsDelivr cache).
+   Without `deck-plan.js`, `quote-request.js` skips rendering as before.
+3. **CSS.** These existing rules apply to the new shapes too:
+   - `.cabin { cursor: pointer; transition: opacity .2s }` and
+     `.cabin:hover { opacity: .85 }` (Webflow class styles): harmless.
+   - `.cabin.reserved { filter: grayscale(); pointer-events: none; ... }`:
+     still works; reserved shapes ignore clicks.
+   - `.cabin.reserved rect { fill: #c0c0c0 }` (page embed): written for the old
+     `<g class="cabin"><rect>` structure. It does not match the new shapes, which
+     are the `rect` itself. It can be deleted.
+   - `.deck-schematic { display: flex; flex-direction: column; gap: 2rem }`:
+     fine, there is no fixed height or overflow clipping.
+   The new shapes are `rect.deck-plan__shape` / `polygon.deck-plan__shape`.
+   Their colours come from the injected defaults and can be changed with the
+   `--deck-plan-*` custom properties on `#deckSchematic`.
