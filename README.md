@@ -60,12 +60,17 @@ Results (2026-11-05):
 
 Checked against the live page `/booking/quote-request` on 2026-11-05.
 
-1. **Deck plan embeds.** The page has **six** elements with `id="deckSchematic"`
-   (one per ship/season SVG, switched by Wized visibility). The script uses
-   `getElementById`, so it only uses the first one. Delete the per-season embeds
-   and their Wized visibility conditions so exactly one `#deckSchematic`
-   (class `deck-schematic`) remains, always visible and empty. Anything else that
-   must show (legend, heading) goes outside it, because its contents get replaced.
+1. **Deck plan embeds.** The page has six booking sections (`quote-request_grid`),
+   one per ship/season, each with its own `#deckSchematic` (four directly on the
+   page, two inside the components "Magellan Explorer Air Cruises 24-25 / 25-26
+   Actual"). Wized shows one by `get_product` venue/brand/season, and its
+   visibility setting **removes** the others from the DOM, so after load there is
+   exactly one `#deckSchematic` (checked on the live page: 24444 leaves only
+   `magellan_discoverer`). The script replaces whatever is inside it, so the
+   sections can stay as they are. Optional clean-up: delete the old SVG
+   drawings inside each `#deckSchematic` (keep the empty box, ID unchanged).
+   Note: a product whose season matches no section's rule (e.g. 2027-28) shows
+   no booking section at all; that is existing behaviour, not caused by this.
 2. **Scripts.** Add `deck-plan.js` before `quote-request.js` in the page's custom
    code. For testing, point both at the `deck-plan` branch commit:
    `https://cdn.jsdelivr.net/gh/MonicaRandriamialy/a21@76736db/deck-plan.js`
