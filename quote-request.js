@@ -565,9 +565,19 @@ window.Wized.push(async (Wized) => {
           throw new Error("No product ID provided");
         }
 
-        const response = await fetch(
+        // Render the RezMagic deck plan (deck-plan.js) in parallel with the
+        // cabin fetch; its shapes must exist before initializeCabinStates().
+        // render() never rejects and shows its own message on failure.
+        const deckPlanReady = window.A21DeckPlan
+          ? window.A21DeckPlan.render(productId)
+          : Promise.resolve(null);
+
+        const cabinRequest = fetch(
           `https://xdtz-oh4i-3nzx.n7d.xano.io/api:XeSy1hTp/cabin/${productId}`,
         );
+        cabinRequest.catch(() => {}); // awaited below, once the deck plan settles
+        await deckPlanReady;
+        const response = await cabinRequest;
         cabinData = await response.json();
         // Create a map of cabin data using item_code as key
         cabinData.forEach((cabin) => {
