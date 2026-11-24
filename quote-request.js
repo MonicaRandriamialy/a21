@@ -394,6 +394,14 @@ window.Wized.push(async (Wized) => {
       // Reset price display to initial state
       const priceDisplay = document.querySelector(".price-display");
       priceDisplay.innerHTML = getPriceDisplayTemplate();
+
+      // Nothing is selected any more, so go back to the categories key.
+      if (window.Wized) {
+        window.Wized.push((Wized) => {
+          Wized.data.v.show_cabin_categories = true;
+          Wized.data.v.current_product_category_item_code = null;
+        });
+      }
     }
 
     function calculateAge(birthDate, departureDate) {
@@ -623,6 +631,16 @@ window.Wized.push(async (Wized) => {
       cabinCategory.textContent = cabin.item_name;
       cabinSize.textContent = cabin.max_occupancy;
 
+      // Swap the categories key for the cabin card before the "already in basket" check below,
+      // which returns early: otherwise that branch leaves the key up and its error message hidden.
+      // Safely update Wized Data Store if available
+      if (window.Wized) {
+        window.Wized.push((Wized) => {
+          Wized.data.v.show_cabin_categories = false;
+          Wized.data.v.current_product_category_item_code = cabinCode;
+        });
+      }
+
       // Check if cabin is already in basket
       const basket = getBasket();
       if (
@@ -661,14 +679,6 @@ window.Wized.push(async (Wized) => {
       // Configure occupancy selectors based on product category
       configureOccupancySelectors(cabin);
       updateTotalPrice();
-
-      // Safely update Wized Data Store if available
-      if (window.Wized) {
-        window.Wized.push((Wized) => {
-          Wized.data.v.show_cabin_categories = false;
-          Wized.data.v.current_product_category_item_code = cabinCode;
-        });
-      }
     }
 
     function configureOccupancySelectors(cabin) {
