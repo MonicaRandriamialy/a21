@@ -631,17 +631,45 @@ window.Wized.push(async (Wized) => {
 
     // Wized's conditional visibility REMOVES the cabin card from the DOM while
     // show_cabin_categories is true, so every .cabin-category / .price-display /
-    // .add-button lookup returns null until the card is put back. Resolves false
-    // if it never appears, so a missing binding degrades instead of hanging.
-    function waitForCabinCard(timeout = 3000) {
+    // .add-button lookup returns null until the card is put back. Wized then
+    // renders it in more than one pass, and a later pass restores the Webflow
+    // markup over anything written in between, so wait for the card to appear
+    // AND for its subtree to stay untouched for quietMs before filling it in.
+    // Resolves false on timeout, so a missing binding degrades instead of hanging.
+    function waitForCabinCard(timeout = 4000, quietMs = 400) {
       return new Promise((resolve) => {
         const started = Date.now();
-        const tick = () => {
-          if (document.querySelector(".cabin-category")) return resolve(true);
-          if (Date.now() - started > timeout) return resolve(false);
-          requestAnimationFrame(tick);
+        let observer = null;
+        let quietTimer = null;
+
+        const done = (value) => {
+          if (observer) observer.disconnect();
+          clearTimeout(quietTimer);
+          resolve(value);
         };
-        tick();
+
+        const watch = () => {
+          const card = document.querySelector(".cabin-category");
+          if (!card) {
+            if (Date.now() - started > timeout) return done(false);
+            // setTimeout, not requestAnimationFrame: rAF is suspended in a
+            // background tab, which would leave the click doing nothing.
+            return setTimeout(watch, 50);
+          }
+
+          const wrapper = card.closest(".choose-cabin_wrapper") || card.closest(".choose-cabin_card") || card.parentElement;
+          const settle = () => {
+            clearTimeout(quietTimer);
+            quietTimer = setTimeout(() => done(!!document.querySelector(".cabin-category")), quietMs);
+          };
+          observer = new MutationObserver(settle);
+          observer.observe(wrapper, { childList: true, subtree: true, characterData: true });
+          settle();
+          // Never wait past the overall timeout, however busy Wized is.
+          setTimeout(() => done(!!document.querySelector(".cabin-category")), Math.max(0, timeout - (Date.now() - started)));
+        };
+
+        watch();
       });
     }
 
@@ -1045,10 +1073,16 @@ window.Wized.push(async (Wized) => {
 
       const priceDisplay = document.querySelector(".price-display");
       if (!priceDisplay) return;
+      // A Wized re-render puts the Webflow markup back, which has none of the
+      // hooks below; re-inject the template rather than writing to null.
+      if (!priceDisplay.querySelector(".price-per-person")) {
+        priceDisplay.innerHTML = getPriceDisplayTemplate();
+      }
       const pricePerPersonEl = priceDisplay.querySelector(".price-per-person");
       const discountsAppliedEl =
         priceDisplay.querySelector(".discounts-applied");
       const totalPriceEl = priceDisplay.querySelector(".total-price");
+      if (!pricePerPersonEl || !discountsAppliedEl || !totalPriceEl) return;
 
       const adults = parseInt(document.getElementById("adults").value);
       const children = parseInt(document.getElementById("children").value) || 0;
