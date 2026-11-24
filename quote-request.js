@@ -165,13 +165,14 @@ window.Wized.push(async (Wized) => {
       resetSelectionPanel();
     }
 
-    function editBasketItem(index) {
+    async function editBasketItem(index) {
       const basket = getBasket();
       const item = basket[index];
       editingBasketItemIndex = index;
 
-      // Select the cabin first to initialize everything
-      selectCabin(item.cabinCode);
+      // Select the cabin first to initialize everything. Awaited: it only returns
+      // once the cabin card is back in the DOM, and every field below is inside it.
+      await selectCabin(item.cabinCode);
 
       // Set occupancy type
       const occupancyTypeSelect = document.getElementById("occupancyType");
@@ -380,20 +381,28 @@ window.Wized.push(async (Wized) => {
         .querySelectorAll(".cabin")
         .forEach((el) => el.classList.remove("selected"));
 
-      // Reset cabin type info
+      // Reset cabin type info. Every element below lives inside the cabin card,
+      // which Wized removes from the DOM whenever it is hidden, so none is certain
+      // to be here (see waitForCabinCard).
       const cabinCategory = document.querySelector(".cabin-category");
       const cabinSize = document.querySelector(".cabin-size");
-      cabinCategory.textContent = "Select a Cabin";
-      cabinSize.textContent = "-";
+      if (cabinCategory) cabinCategory.textContent = "Select a Cabin";
+      if (cabinSize) cabinSize.textContent = "-";
 
-      document.getElementById("adults").disabled = true;
-      document.getElementById("children").disabled = true;
-      document.getElementById("childrenDOBContainer").innerHTML = "";
-      document.querySelector(".add-button").disabled = true;
-      document.querySelector(".add-button").textContent = "Add";
+      const adultsSelect = document.getElementById("adults");
+      const childrenSelect = document.getElementById("children");
+      const dobContainer = document.getElementById("childrenDOBContainer");
+      const addButton = document.querySelector(".add-button");
+      if (adultsSelect) adultsSelect.disabled = true;
+      if (childrenSelect) childrenSelect.disabled = true;
+      if (dobContainer) dobContainer.innerHTML = "";
+      if (addButton) {
+        addButton.disabled = true;
+        addButton.textContent = "Add";
+      }
       // Reset price display to initial state
       const priceDisplay = document.querySelector(".price-display");
-      priceDisplay.innerHTML = getPriceDisplayTemplate();
+      if (priceDisplay) priceDisplay.innerHTML = getPriceDisplayTemplate();
 
       // Nothing is selected any more, so go back to the categories key.
       if (window.Wized) {
@@ -620,26 +629,43 @@ window.Wized.push(async (Wized) => {
       });
     }
 
+    // Wized's conditional visibility REMOVES the cabin card from the DOM while
+    // show_cabin_categories is true, so every .cabin-category / .price-display /
+    // .add-button lookup returns null until the card is put back. Resolves false
+    // if it never appears, so a missing binding degrades instead of hanging.
+    function waitForCabinCard(timeout = 3000) {
+      return new Promise((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+          if (document.querySelector(".cabin-category")) return resolve(true);
+          if (Date.now() - started > timeout) return resolve(false);
+          requestAnimationFrame(tick);
+        };
+        tick();
+      });
+    }
+
     // Cabin selection handling
-    function selectCabin(cabinCode) {
+    async function selectCabin(cabinCode) {
       const cabin = cabinDataMap.get(cabinCode);
       if (!cabin || cabin.item_status !== 0) return;
 
-      // Update cabin type info
-      const cabinCategory = document.querySelector(".cabin-category");
-      const cabinSize = document.querySelector(".cabin-size");
-      cabinCategory.textContent = cabin.item_name;
-      cabinSize.textContent = cabin.max_occupancy;
-
-      // Swap the categories key for the cabin card before the "already in basket" check below,
-      // which returns early: otherwise that branch leaves the key up and its error message hidden.
-      // Safely update Wized Data Store if available
+      // Ask Wized for the card first, then wait for it: nothing below can read
+      // the panel until it is back in the DOM. This also has to happen before the
+      // "already in basket" early return, which otherwise hides its own message.
       if (window.Wized) {
         window.Wized.push((Wized) => {
           Wized.data.v.show_cabin_categories = false;
           Wized.data.v.current_product_category_item_code = cabinCode;
         });
       }
+      if (!(await waitForCabinCard())) return;
+
+      // Update cabin type info
+      const cabinCategory = document.querySelector(".cabin-category");
+      const cabinSize = document.querySelector(".cabin-size");
+      cabinCategory.textContent = cabin.item_name;
+      cabinSize.textContent = cabin.max_occupancy;
 
       // Check if cabin is already in basket
       const basket = getBasket();
@@ -1018,6 +1044,7 @@ window.Wized.push(async (Wized) => {
       if (!selectedCabin) return;
 
       const priceDisplay = document.querySelector(".price-display");
+      if (!priceDisplay) return;
       const pricePerPersonEl = priceDisplay.querySelector(".price-per-person");
       const discountsAppliedEl =
         priceDisplay.querySelector(".discounts-applied");
